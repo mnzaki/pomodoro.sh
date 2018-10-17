@@ -1,0 +1,70 @@
+#!/bin/bash
+
+pomodoro_dir="$HOME/pomodoro"
+pomolog_file="$pomodoro_dir/$(date +%Y.%m.%d).log"
+today_link="$pomodoro_dir/today.log"
+editor_command="xdg-open"
+
+##############  END OF SETTINGS ###################
+
+mkdir -p "$pomodoro_dir"
+
+start_timestamp="$(date)"
+pomo=${1:-1}
+start_pomo=$pomo
+
+function write_log() {
+  msg="$(date +%H:%M) - $1"
+  echo -e $msg
+  echo -e $msg >> $pomolog_file
+}
+
+if [[ ! -e $pomolog_file ]]; then
+  echo "$(date)" > $pomolog_file
+  write_log "Pomodoro Log\n--------------------------------------------------------------------------------"
+fi
+
+ln -sf $pomolog_file $today_link
+
+write_log "Start session"
+
+function show_log_editor() {
+  $editor_command "$pomolog_file"
+}
+
+while true; do
+  write_log "Pomodoro $pomo: Start"
+  sleep 1#$((25*60))
+  write_log "Pomodoro $pomo: End"
+
+# TAKE NOTES
+xmessage -buttons yes:0,no:1 -nearmouse -file - <<EOF
+End of pomodoro $pomo
+
+Take notes?
+EOF
+
+  if [[ "$?" == "0" ]]; then
+    write_log "Pomodoro $pomo: Take notes\n\n"
+    show_log_editor
+  fi
+
+# TAKE A BREAK heh?
+xmessage -buttons yes:0,no:1 -nearmouse -file - <<EOF
+Take a break?
+EOF
+
+# POMODORO?
+xmessage -buttons yes:0,no:1 -nearmouse -file - <<EOF
+Pomodoro $((pomo+1))?
+EOF
+
+  if [[ "$?" == "1" ]]; then
+    bye_stats="$pomo total pomodoros. $((pomo - start_pomo + 1)) since $start_timestamp"
+    write_log "End Session\n$bye_stats\n--------------------------------------------------------------------------------"
+    echo -e "current time: $(date)\n$bye_stats" | xmessage -nearmouse -file -
+    exit 0
+  fi
+
+  let "pomo = pomo + 1";
+done
