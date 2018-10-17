@@ -1,12 +1,12 @@
 # Pomodoro BASH Script
 
 A simple bash script to prompt you to use the pomodoro system. It writes a log
-to `~/pomodoro/` and opens your editor to edit the logs after every pomodoro.
+to the local dir and opens your editor to edit the logs after every pomodoro.
 
 ## Usage
 
 ```bash
-$ pomodoro
+$ ./pomodoro
 ```
 
 Keep it running and go work. After 25 minutes, a dialog will popup (xmessage)
@@ -22,4 +22,5 @@ $ pomodoro 5
 
 So that it doesn't start from 1 again. Sorry it's just a bash script writing to
 a text file and I was too lazy to grep the file for the last pomodoro number
+
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-pomodoro_dir="$HOME/pomodoro"
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+pomodoro_dir="$MY_DIR/logs"
 pomolog_file="$pomodoro_dir/$(date +%Y.%m.%d).log"
 today_link="$pomodoro_dir/today.log"
 editor_command="xdg-open"
@@ -34,7 +35,7 @@ function show_log_editor() {
 
 while true; do
   write_log "Pomodoro $pomo: Start"
-  sleep 1#$((25*60))
+  sleep $((25*60))
   write_log "Pomodoro $pomo: End"
 
 # TAKE NOTES
