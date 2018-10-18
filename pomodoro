@@ -1,18 +1,21 @@
 #!/bin/bash
 
-MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-pomodoro_dir="$MY_DIR/logs"
-pomolog_file="$pomodoro_dir/$(date +%Y.%m.%d).log"
-today_link="$pomodoro_dir/today.log"
-editor_command="xdg-open"
+pomodoro_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+pomodoro_logs_dir="$pomodoro_dir/logs"
+pomodoro_log_editor="xdg-open"
+pomodoro_settings="$HOME/.pomodoro.rc"
 
-##############  END OF SETTINGS ###################
+if [[ -e $pomodoro_settings ]]; then
+  source $pomodoro_settings
+fi
 
-mkdir -p "$pomodoro_dir"
-
+pomolog_file="$pomodoro_logs_dir/$(date +%Y.%m.%d).log"
+today_link="$pomodoro_logs_dir/today.log"
 start_timestamp="$(date)"
 pomo=${1:-1}
 start_pomo=$pomo
+
+mkdir -p "$pomodoro_logs_dir"
 
 function write_log() {
   msg="$(date +%H:%M) - $1"
@@ -30,7 +33,7 @@ ln -sf $pomolog_file $today_link
 write_log "Start session"
 
 function show_log_editor() {
-  $editor_command "$pomolog_file"
+  $pomodoro_log_editor "$pomolog_file"
 }
 
 while true; do

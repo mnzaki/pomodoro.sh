@@ -1,0 +1,8 @@
+# Pomodoro BASH script settings
+# Copy this file to $HOME/.pomodoro.rc and set it up as you please
+
+# Uncomment and set the following to write logs somewhere else
+#pomodoro_logs_dir="$HOME/pomodoro/logs"
+
+# Uncommet and set your favorite editor. If unset, the script uses xdg-open
+#pomodoro_log_editor="xterm -e vim"
