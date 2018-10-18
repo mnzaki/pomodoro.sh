@@ -3,6 +3,10 @@
 A simple bash script to prompt you to use the pomodoro system. It writes a log
 to the local dir and opens your editor to edit the logs after every pomodoro.
 
+## Requirements
+Make sure that `xmessage` is installed. On Arch Linux it's in the
+`xorg-xmessage` package.
+
 ## Usage
 
 ```bash
