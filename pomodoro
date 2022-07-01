@@ -2,15 +2,18 @@
 
 pomodoro_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 pomodoro_logs_dir="$pomodoro_dir/logs"
-pomodoro_log_editor="xdg-open"
+pomodoro_log_editor="${EDITOR:-xdg-open}"
 pomodoro_settings="$HOME/.pomodoro.rc"
 
 if [[ -e $pomodoro_settings ]]; then
   source $pomodoro_settings
 fi
 
-pomolog_file="$pomodoro_logs_dir/$(date +%Y.%m.%d).log"
-today_link="$pomodoro_logs_dir/today.log"
+source ~/.msh/lib/x11.sh
+
+pomolog_file="$pomodoro_logs_dir/$(date +%Y.%m.%d).md"
+today_link="$pomodoro_logs_dir/today.md"
+before_link="$pomodoro_logs_dir/before.md"
 start_timestamp="$(date)"
 pomo=${1:-1}
 start_pomo=$pomo
@@ -18,55 +21,88 @@ start_pomo=$pomo
 mkdir -p "$pomodoro_logs_dir"
 
 function write_log() {
-  msg="$(date +%H:%M) - $1"
+  msg="- [$(date +%H:%M)] $1"
   echo -e $msg
   echo -e $msg >> $pomolog_file
 }
-
-if [[ ! -e $pomolog_file ]]; then
-  echo "$(date)" > $pomolog_file
-  write_log "Pomodoro Log\n--------------------------------------------------------------------------------"
-fi
-
-ln -sf $pomolog_file $today_link
-
-write_log "Start session"
-
-function show_log_editor() {
-  $pomodoro_log_editor "$pomolog_file"
+function write_log_raw() {
+  echo -e "$1" >> $pomolog_file
+}
+function write_log_horiz_sep() {
+  write_log_raw "--------------------------------------------------------------------------------"
 }
 
+function show_log_editor() {
+  focus_or_exec "$pomodoro_log_editor" "$pomolog_file"
+}
+
+# if there's a pomodoro already running, just show the log
+THIS_PID=$$
+if pgrep "$(basename "${BASH_SOURCE[0]}")" | grep -v $THIS_PID &>/dev/null; then
+  show_log_editor
+  exit 0
+fi
+
+if [[ ! -e $pomolog_file ]]; then
+  write_log_raw "# :pomodoro: $(date) || +pomodoro"
+  write_log_horiz_sep
+
+  pomolog_before_file="$(realpath "$today_link")"
+  ln -srf "$pomolog_before_file" "$before_link"
+  ln -srf "$pomolog_file" "$today_link"
+fi
+
+function xok {
+  xmessage -default okay $@
+}
+
+function xyesno {
+  xmessage -default yes -buttons yes:0,no:1 $@
+}
+
+xyesno -nearmouse -file - <<EOF
+Plan session? Take notes?
+EOF
+
+if [[ "$?" == "0" ]]; then
+  write_log "Start session"
+  show_log_editor
+fi
+
+xok "Start session"
+
 while true; do
-  write_log "Pomodoro $pomo: Start"
+  write_log_raw "## Pomodoro $pomo"
+  write_log "Start"
   sleep $((25*60))
-  write_log "Pomodoro $pomo: End"
+  write_log "End"
 
 # TAKE NOTES
-xmessage -buttons yes:0,no:1 -nearmouse -file - <<EOF
+xyesno -nearmouse -file - <<EOF
 End of pomodoro $pomo
 
 Take notes?
 EOF
 
   if [[ "$?" == "0" ]]; then
-    write_log "Pomodoro $pomo: Take notes\n\n"
+    write_log "Take notes\n  - "
     show_log_editor
   fi
 
 # TAKE A BREAK heh?
-xmessage -buttons yes:0,no:1 -nearmouse -file - <<EOF
+xyesno -nearmouse -file - <<EOF
 Take a break?
 EOF
 
 # POMODORO?
-xmessage -buttons yes:0,no:1 -nearmouse -file - <<EOF
+xyesno -nearmouse -file - <<EOF
 Pomodoro $((pomo+1))?
 EOF
 
   if [[ "$?" == "1" ]]; then
-    bye_stats="$pomo total pomodoros. $((pomo - start_pomo + 1)) since $start_timestamp"
+    bye_stats="\n## Summary\n- started: $start_timestamp\n- ended:  $(date)\n- pomodoros: $((pomo - start_pomo + 1))"
     write_log "End Session\n$bye_stats\n--------------------------------------------------------------------------------"
-    echo -e "current time: $(date)\n$bye_stats" | xmessage -nearmouse -file -
+    echo -e "$bye_stats" | xok -nearmouse -file -
     exit 0
   fi
 
