@@ -21,9 +21,9 @@ start_pomo=$pomo
 mkdir -p "$pomodoro_logs_dir"
 
 function write_log() {
-  msg="- [$(date +%H:%M)] $1"
-  echo -e $msg
-  echo -e $msg >> $pomolog_file
+  local msg="- [$(date +%H:%M)] $1"
+  echo -e "$msg"
+  echo -e "$msg" >> "$pomolog_file"
 }
 function write_log_raw() {
   echo -e "$1" >> $pomolog_file
@@ -65,7 +65,7 @@ Plan session? Take notes?
 EOF
 
 if [[ "$?" == "0" ]]; then
-  write_log "Start session"
+  write_log "Start session\n  - "
   show_log_editor
 fi
 
