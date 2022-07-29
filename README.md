@@ -8,6 +8,8 @@ to the local dir and opens your editor to edit the logs after every pomodoro.
 Make sure that `xmessage` is installed. On Arch Linux it's in the
 `xorg-xmessage` package.
 
+You also need to install [mnzakish](https://github.com/mnzaki/mnzakish)
+
 ## Usage
 
 ```bash
