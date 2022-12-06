@@ -19,6 +19,7 @@ pomo=${1:-1}
 start_pomo=$pomo
 
 mkdir -p "$pomodoro_logs_dir"
+cd "$pomodoro_logs_dir"
 
 function write_log() {
   local msg="- [$(date +%H:%M)] $1"
@@ -33,7 +34,7 @@ function write_log_horiz_sep() {
 }
 
 function show_log_editor() {
-  msh_focus_or_exec "$pomodoro_log_editor" "$pomolog_file"
+  msh_focus_or_exec "$pomodoro_log_editor" "$(realpath "$today_link")"
 }
 
 # if there's a pomodoro already running, just show the log
