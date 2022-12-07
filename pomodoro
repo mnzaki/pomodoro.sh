@@ -45,7 +45,7 @@ if pgrep "$(basename "${BASH_SOURCE[0]}")" | grep -v $THIS_PID &>/dev/null; then
 fi
 
 if [[ ! -e $pomolog_file ]]; then
-  write_log_raw "# :pomodoro: $(date) || +pomodoro"
+  write_log_raw "# :pomodoro: $(date) || +pomodoro due:tomorrow"
   write_log_horiz_sep
 
   pomolog_before_file="$(realpath "$today_link")"
@@ -65,7 +65,7 @@ xyesno -nearmouse -file - <<EOF
 Plan session? Take notes?
 EOF
 
-if [[ "$?" == "0" ]]; then
+if [ "$?" = "0" ]; then
   write_log "Start session\n  - "
   show_log_editor
 fi
@@ -85,7 +85,7 @@ End of pomodoro $pomo
 Take notes?
 EOF
 
-  if [[ "$?" == "0" ]]; then
+  if [ "$?" = "0" ]; then
     write_log "Take notes\n  - "
     show_log_editor
   fi
@@ -100,7 +100,7 @@ xyesno -nearmouse -file - <<EOF
 Pomodoro $((pomo+1))?
 EOF
 
-  if [[ "$?" == "1" ]]; then
+  if [ "$?" == "1" ]; then
     bye_stats="\n## Summary\n- started: $start_timestamp\n- ended:  $(date)\n- pomodoros: $((pomo - start_pomo + 1))"
     write_log "End Session\n$bye_stats\n--------------------------------------------------------------------------------"
     echo -e "$bye_stats" | xok -nearmouse -file -
