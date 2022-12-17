@@ -22,15 +22,16 @@ mkdir -p "$pomodoro_logs_dir"
 cd "$pomodoro_logs_dir"
 
 function write_log() {
-  local msg="- [$(date +%H:%M)] $1"
+  local msg="${2:-##} $1 [$(date +%H:%M)]"
   echo -e "$msg"
   echo -e "$msg" >> "$pomolog_file"
 }
 function write_log_raw() {
+  echo -e "$1"
   echo -e "$1" >> $pomolog_file
 }
 function write_log_horiz_sep() {
-  write_log_raw "--------------------------------------------------------------------------------"
+  write_log_raw "--------------------------------------------------------------------------------\n"
 }
 
 function show_log_editor() {
@@ -65,18 +66,21 @@ xyesno -nearmouse -file - <<EOF
 Plan session? Take notes?
 EOF
 
+LAST_POMO_RELATIVE=$(realpath --relative-to="$pomodoro_logs_dir" "$before_link")
+write_log_raw "## Recall and Plan\n"
+write_log_raw "Last Pomodoro: [$(basename "$LAST_POMO_RELATIVE")]($LAST_POMO_RELATIVE)"
+write_log_raw "> TODO bring in some stats from last pomo, like projects and tasks\n"
+
 if [ "$?" = "0" ]; then
-  write_log "Start session\n  - "
   show_log_editor
 fi
 
 xok "Start session"
 
 while true; do
-  write_log_raw "## Pomodoro $pomo"
-  write_log "Start"
+  write_log "Pomodoro $pomo"
   sleep $((25*60))
-  write_log "End"
+  write_log "End Pomodoro $pomo"
 
 # TAKE NOTES
 xyesno -nearmouse -file - <<EOF
