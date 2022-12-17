@@ -46,11 +46,18 @@ if pgrep "$(basename "${BASH_SOURCE[0]}")" | grep -v $THIS_PID &>/dev/null; then
 fi
 
 if [[ ! -e $pomolog_file ]]; then
+  # check if the today_link is valid, because maybe user deleted today's entry
+  # and wants to start a new one
+  pomolog_before_file="$(realpath "$today_link")"
+  if [ -f "$pomolog_before_file" ]; then
+    # if the today_link points to a valid file, then we keep it as the new
+    # 'before'
+    ln -srf "$pomolog_before_file" "$before_link"
+  fi
+
   write_log_raw "# :pomodoro: $(date) || +pomodoro due:tomorrow"
   write_log_horiz_sep
 
-  pomolog_before_file="$(realpath "$today_link")"
-  ln -srf "$pomolog_before_file" "$before_link"
   ln -srf "$pomolog_file" "$today_link"
 fi
 
