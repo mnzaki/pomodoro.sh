@@ -22,7 +22,7 @@ mkdir -p "$pomodoro_logs_dir"
 cd "$pomodoro_logs_dir"
 
 function write_log() {
-  local msg="${2:-##} $1 [$(date +%H:%M)]"
+  local msg="${2:-###} [$(date +%H:%M)] ${1:-}"
   echo -e "$msg"
   echo -e "$msg" >> "$pomolog_file"
 }
@@ -41,6 +41,7 @@ function show_log_editor() {
 # if there's a pomodoro already running, just show the log
 THIS_PID=$$
 if pgrep "$(basename "${BASH_SOURCE[0]}")" | grep -v $THIS_PID &>/dev/null; then
+  write_log
   show_log_editor
   exit 0
 fi
@@ -78,6 +79,8 @@ write_log_raw "## Recall and Plan\n"
 write_log_raw "Last Pomodoro: [$(basename "$LAST_POMO_RELATIVE")]($LAST_POMO_RELATIVE)"
 write_log_raw "> TODO bring in some stats from last pomo, like projects and tasks\n"
 
+write_log
+
 if [ "$?" = "0" ]; then
   show_log_editor
 fi
@@ -97,7 +100,7 @@ Take notes?
 EOF
 
   if [ "$?" = "0" ]; then
-    write_log "Take notes\n  - "
+    write_log "Take notes"
     show_log_editor
   fi
 
