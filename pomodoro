@@ -56,7 +56,7 @@ if [[ ! -e $pomolog_file ]]; then
     ln -srf "$pomolog_before_file" "$before_link"
   fi
 
-  write_log_raw "# :pomodoro: $(date) || +pomodoro due:tomorrow"
+  write_log_raw "# :pomodoro: $(date) || +pomodoro due:$(date --date=tomorrow +%Y-%m-%d)"
   write_log_horiz_sep
 
   ln -srf "$pomolog_file" "$today_link"
