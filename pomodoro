@@ -35,7 +35,7 @@ function write_log_horiz_sep() {
 }
 
 function show_log_editor() {
-  msh_focus_or_exec "$pomodoro_log_editor" "$(realpath "$today_link")"
+  _msh_focus_or_exec "$pomodoro_log_editor" "$(realpath "$today_link")"
 }
 
 # if there's a pomodoro already running, just show the log
