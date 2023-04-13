@@ -15,8 +15,25 @@ start_pomo=$pomo
 mkdir -p "$pomodoro_logs_dir"
 cd "$pomodoro_logs_dir"
 
+CURRENT_VIMTASK_SCOPE=
+function read_vim_task_scope() {
+  local VIMTASK_SCOPE=$(tac "$today_link" | grep -m1 '^#.*|')
+
+  if [ -n "$VIMTASK_SCOPE" ]; then
+    CURRENT_VIMTASK_SCOPE="|${VIMTASK_SCOPE#*|}"
+  fi
+}
+
 function write_log() {
-  local msg="${2:-###} [$(date +%H:%M)] ${1:-}"
+  local VIMTASK_SCOPE=
+  while getopts ":t" opt; do
+    case $opt in
+      t) VIMTASK_SCOPE=" $CURRENT_VIMTASK_SCOPE" ;;
+    esac
+  done
+  shift $(($OPTIND-1))
+
+  local msg="${2:-####} [$(date +%H:%M)] ${1:-}$VIMTASK_SCOPE"
   echo -e "$msg"
   echo -e "$msg" >> "$today_link"
 }
@@ -30,6 +47,7 @@ function write_log_horiz_sep() {
 
 function show_log_editor() {
   _msh_focus_or_exec "$pomodoro_log_editor" "$(realpath "$today_link")"
+  read_vim_task_scope
 }
 
 function xok {
@@ -98,7 +116,7 @@ function _pomodoro() {
   local pomo=${1:-1}
   _todays_pomolog_file
 
-  write_log "Pomodoro $pomo" "###"
+  write_log -t "Pomodoro $pomo" "###"
   sleep $((25*60))
   write_log "End Pomodoro $pomo"
 
