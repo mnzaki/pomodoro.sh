@@ -112,12 +112,19 @@ function _todays_pomolog_file() {
   fi
 }
 
+POMO_TIME_LEFT=
 function _pomodoro() {
   local pomo=${1:-1}
   _todays_pomolog_file
 
   write_log -t "Pomodoro $pomo" "###"
-  sleep $((25*60))
+  local POMO_END=$((EPOCHSECONDS + 25*60))
+  while [ $EPOCHSECONDS -lt $POMO_END ]; do
+    POMO_TIME_LEFT=$(( (POMO_END - EPOCHSECONDS) / 60 ))m
+    _update_process_name
+    sleep 5m
+  done
+
   write_log "End Pomodoro $pomo"
 
   # TAKE NOTES
@@ -137,6 +144,22 @@ EOF
   # POMODORO?
   xyesno -nearmouse "Pomodoro $((pomo+1))?"
   return
+}
+
+# Update the process_name to see remaining time
+function _update_process_name() {
+  local my_name_is=`basename $0`
+  if [ -n "$POMO_TIME_LEFT" ]; then
+    my_name_is+="[$POMO_TIME_LEFT]"
+  fi
+
+  # tmux support
+  if [ -n "$TMUX" ]; then
+    # update tmux pane title
+    printf '\033]2;%s\033\\' "$my_name_is"
+  fi
+
+  echo -n "$my_name_is" > /proc/$$/comm
 }
 
 # if there's a pomodoro already running, just show the log
