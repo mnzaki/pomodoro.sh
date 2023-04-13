@@ -9,23 +9,30 @@ pomodoro_log_editor="${pomodoro_log_editor:-${EDITOR:-xdg-open}}"
 today_link="$pomodoro_logs_dir/today.md"
 before_link="$pomodoro_logs_dir/before.md"
 start_timestamp="$(date)"
-pomo=${1:-1}
-start_pomo=$pomo
+num_pomos_this_session=0
 
 mkdir -p "$pomodoro_logs_dir"
 cd "$pomodoro_logs_dir"
 
 CURRENT_VIMTASK_SCOPE=
-function read_vim_task_scope() {
+CURRENT_POMO=
+function read_log_metadata() {
   local VIMTASK_SCOPE=$(tac "$today_link" | grep -m1 '^#.*|')
 
   if [ -n "$VIMTASK_SCOPE" ]; then
     CURRENT_VIMTASK_SCOPE="|${VIMTASK_SCOPE#*|}"
   fi
+
+  local pomo=$(tac "$today_link" | grep -E --only-matching -m1 '^### \[.*\] Pomodoro [0-9]+')
+  pomo=${pomo#\###*Pomodoro}
+  pomo=${pomo%%|*}
+  pomo=${pomo/[^0-9]}
+  CURRENT_POMO=${pomo:-0}
 }
 
 function write_log() {
   local VIMTASK_SCOPE=
+  local OPTIND=1
   while getopts ":t" opt; do
     case $opt in
       t) VIMTASK_SCOPE=" $CURRENT_VIMTASK_SCOPE" ;;
@@ -33,9 +40,16 @@ function write_log() {
   done
   shift $(($OPTIND-1))
 
-  local msg="${2:-####} [$(date +%H:%M)] ${1:-}$VIMTASK_SCOPE"
-  echo -e "$msg"
-  echo -e "$msg" >> "$today_link"
+  local DEPTH="####"
+  if [ $# -gt 1 ]; then
+    DEPTH=${1}
+    shift
+  fi
+
+  local MSG="$DEPTH [$(date +%H:%M)] ${1:-}$VIMTASK_SCOPE"
+
+  echo -e "$MSG"
+  echo -e "$MSG" >> "$today_link"
 }
 function write_log_raw() {
   echo -e "$1"
@@ -47,7 +61,7 @@ function write_log_horiz_sep() {
 
 function show_log_editor() {
   _msh_focus_or_exec "$pomodoro_log_editor" "$(realpath "$today_link")"
-  read_vim_task_scope
+  read_log_metadata
 }
 
 function xok {
@@ -82,7 +96,7 @@ function _end_day() {
   local end_timestamp="$(date)"
   [ "$start_timestamp" == "$end_timestamp" ] && return
 
-  local bye_stats="\n## Summary\n- started: $start_timestamp\n- ended:  $(date)\n- pomodoros: $((pomo - start_pomo + 1))"
+  local bye_stats="\n## Summary\n- started: $start_timestamp\n- ended:  $(date)\n- pomodoros: $num_pomos_this_session"
   write_log "End Day\n$bye_stats\n--------------------------------------------------------------------------------"
   echo -e "$bye_stats" | xok -nearmouse -file -
 }
@@ -114,10 +128,12 @@ function _todays_pomolog_file() {
 
 POMO_TIME_LEFT=
 function _pomodoro() {
-  local pomo=${1:-1}
   _todays_pomolog_file
+  read_log_metadata
+  CURRENT_POMO=$((CURRENT_POMO+1))
 
-  write_log -t "Pomodoro $pomo" "###"
+  write_log -t "###" "Pomodoro $CURRENT_POMO"
+
   local POMO_END=$((EPOCHSECONDS + 25*60))
   while [ $EPOCHSECONDS -lt $POMO_END ]; do
     POMO_TIME_LEFT=$(( (POMO_END - EPOCHSECONDS) / 60 ))m
@@ -125,11 +141,11 @@ function _pomodoro() {
     sleep 5m
   done
 
-  write_log "End Pomodoro $pomo"
+  write_log "End Pomodoro $CURRENT_POMO"
 
   # TAKE NOTES
   if xyesno -nearmouse -file - <<-EOF
-  End of pomodoro $pomo
+  End of pomodoro $CURRENT_POMO
 
   Take notes?
 EOF
@@ -138,11 +154,13 @@ EOF
     show_log_editor
   fi
 
+  num_pomos_this_session=$((num_pomos_this_session+1))
+
   # TAKE A BREAK heh?
   xyesno -nearmouse "Take a break?"
 
   # POMODORO?
-  xyesno -nearmouse "Pomodoro $((pomo+1))?"
+  xyesno -nearmouse "Pomodoro $((CURRENT_POMO+1))?"
   return
 }
 
@@ -170,8 +188,5 @@ if pgrep "$(basename "${BASH_SOURCE[0]}")" | grep -v $THIS_PID &>/dev/null; then
   exit 0
 fi
 
-while _pomodoro $pomo; do
-  let "pomo = pomo + 1";
-done
-
+while _pomodoro; do true; done
 _end_day
