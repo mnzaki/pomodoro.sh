@@ -1,17 +1,11 @@
 #!/bin/bash
 
-pomodoro_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-pomodoro_logs_dir="$pomodoro_dir/logs"
-pomodoro_log_editor="${EDITOR:-xdg-open}"
+`msh src lib/x11`
 pomodoro_settings="$HOME/.pomodoro.rc"
+[ -e $pomodoro_settings ] && source $pomodoro_settings
 
-if [[ -e $pomodoro_settings ]]; then
-  source $pomodoro_settings
-fi
-
-source `msh lib x11`
-
-pomolog_file="$pomodoro_logs_dir/$(date +%Y.%m.%d).md"
+pomodoro_logs_dir="$(realpath "${pomodoro_logs_dir:-$HOME/pomodoro/logs}")"
+pomodoro_log_editor="${pomodoro_log_editor:-${EDITOR:-xdg-open}}"
 today_link="$pomodoro_logs_dir/today.md"
 before_link="$pomodoro_logs_dir/before.md"
 start_timestamp="$(date)"
@@ -24,11 +18,11 @@ cd "$pomodoro_logs_dir"
 function write_log() {
   local msg="${2:-###} [$(date +%H:%M)] ${1:-}"
   echo -e "$msg"
-  echo -e "$msg" >> "$pomolog_file"
+  echo -e "$msg" >> "$today_link"
 }
 function write_log_raw() {
   echo -e "$1"
-  echo -e "$1" >> $pomolog_file
+  echo -e "$1" >> "$today_link"
 }
 function write_log_horiz_sep() {
   write_log_raw "--------------------------------------------------------------------------------\n"
@@ -36,6 +30,95 @@ function write_log_horiz_sep() {
 
 function show_log_editor() {
   _msh_focus_or_exec "$pomodoro_log_editor" "$(realpath "$today_link")"
+}
+
+function xok {
+  xmessage -default okay "$@"
+}
+
+function xyesno {
+  xmessage -default yes -buttons yes:0,no:1 "$@"
+  return
+}
+
+function _start_day() {
+  write_log_raw "# :pomodoro: || +pomodoro status:pending"
+  write_log_raw
+
+  local LAST_POMO_RELATIVE=$(realpath --relative-to="$pomodoro_logs_dir" "$before_link")
+  # TODO calculate LAST POMO date and use that in the vim-task filter instead of
+  # "today" and "tomorrow"
+  write_log_raw "## Recall and Plan | due:$(date --date=today +%Y-%m-%d)\n"
+  write_log_raw "Last Pomodoro: [$(basename "$LAST_POMO_RELATIVE")]($LAST_POMO_RELATIVE)"
+  write_log_raw "> TODO bring in some stats from last pomo, like projects and tasks\n\n"
+  write_log_raw "## Today $(date) | due:$(date --date=tomorrow +%Y-%m-%d)\n"
+
+  if xyesno -nearmouse "Plan session? Take notes?"; then
+    show_log_editor
+  fi
+
+  xok "Start session"
+}
+
+function _end_day() {
+  local end_timestamp="$(date)"
+  [ "$start_timestamp" == "$end_timestamp" ] && return
+
+  local bye_stats="\n## Summary\n- started: $start_timestamp\n- ended:  $(date)\n- pomodoros: $((pomo - start_pomo + 1))"
+  write_log "End Day\n$bye_stats\n--------------------------------------------------------------------------------"
+  echo -e "$bye_stats" | xok -nearmouse -file -
+}
+
+# cases
+# - today entry deleted, want to start over
+# - new day, current today link is old
+#   - day is over and want to continue pomodoro in new file
+
+# ensure today link is correct
+# ensure today's file is ready for logging
+function _todays_pomolog_file() {
+  local pomolog_now_file="$pomodoro_logs_dir/$(date +%Y.%m.%d).md"
+  local today_link_file="$(realpath "$today_link")"
+
+  if [[ -e "$today_link_file" && "$pomolog_now_file" != "$today_link_file" ]]; then
+    # today_link points to a valid file, and we need to change it
+    _end_day
+    if [ "$pomolog_now_file" != "$today_link_file" ]; then
+      ln -srf "$today_link_file" "$before_link"
+    fi
+    ln -srf "$pomolog_now_file" "$today_link"
+  fi
+
+  if [ ! -e "$pomolog_now_file" ]; then
+    _start_day
+  fi
+}
+
+function _pomodoro() {
+  local pomo=${1:-1}
+  _todays_pomolog_file
+
+  write_log "Pomodoro $pomo" "###"
+  sleep $((25*60))
+  write_log "End Pomodoro $pomo"
+
+  # TAKE NOTES
+  if xyesno -nearmouse -file - <<-EOF
+  End of pomodoro $pomo
+
+  Take notes?
+EOF
+  then
+    write_log "Take notes"
+    show_log_editor
+  fi
+
+  # TAKE A BREAK heh?
+  xyesno -nearmouse "Take a break?"
+
+  # POMODORO?
+  xyesno -nearmouse "Pomodoro $((pomo+1))?"
+  return
 }
 
 # if there's a pomodoro already running, just show the log
@@ -46,80 +129,8 @@ if pgrep "$(basename "${BASH_SOURCE[0]}")" | grep -v $THIS_PID &>/dev/null; then
   exit 0
 fi
 
-if [[ ! -e $pomolog_file ]]; then
-  # check if the today_link is valid, because maybe user deleted today's entry
-  # and wants to start a new one
-  pomolog_before_file="$(realpath "$today_link")"
-  if [ -f "$pomolog_before_file" ]; then
-    # if the today_link points to a valid file, then we keep it as the new
-    # 'before'
-    ln -srf "$pomolog_before_file" "$before_link"
-  fi
-
-  write_log_raw "# :pomodoro: $(date) || +pomodoro due:$(date --date=tomorrow +%Y-%m-%d)"
-  write_log_horiz_sep
-
-  ln -srf "$pomolog_file" "$today_link"
-fi
-
-function xok {
-  xmessage -default okay $@
-}
-
-function xyesno {
-  xmessage -default yes -buttons yes:0,no:1 $@
-}
-
-xyesno -nearmouse -file - <<EOF
-Plan session? Take notes?
-EOF
-
-LAST_POMO_RELATIVE=$(realpath --relative-to="$pomodoro_logs_dir" "$before_link")
-write_log_raw "## Recall and Plan\n"
-write_log_raw "Last Pomodoro: [$(basename "$LAST_POMO_RELATIVE")]($LAST_POMO_RELATIVE)"
-write_log_raw "> TODO bring in some stats from last pomo, like projects and tasks\n"
-
-write_log
-
-if [ "$?" = "0" ]; then
-  show_log_editor
-fi
-
-xok "Start session"
-
-while true; do
-  write_log "Pomodoro $pomo"
-  sleep $((25*60))
-  write_log "End Pomodoro $pomo"
-
-# TAKE NOTES
-xyesno -nearmouse -file - <<EOF
-End of pomodoro $pomo
-
-Take notes?
-EOF
-
-  if [ "$?" = "0" ]; then
-    write_log "Take notes"
-    show_log_editor
-  fi
-
-# TAKE A BREAK heh?
-xyesno -nearmouse -file - <<EOF
-Take a break?
-EOF
-
-# POMODORO?
-xyesno -nearmouse -file - <<EOF
-Pomodoro $((pomo+1))?
-EOF
-
-  if [ "$?" == "1" ]; then
-    bye_stats="\n## Summary\n- started: $start_timestamp\n- ended:  $(date)\n- pomodoros: $((pomo - start_pomo + 1))"
-    write_log "End Session\n$bye_stats\n--------------------------------------------------------------------------------"
-    echo -e "$bye_stats" | xok -nearmouse -file -
-    exit 0
-  fi
-
+while _pomodoro $pomo; do
   let "pomo = pomo + 1";
 done
+
+_end_day
