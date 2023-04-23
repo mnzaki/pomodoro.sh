@@ -1,6 +1,7 @@
 #!/bin/bash
 
 `msh src lib/x11`
+
 pomodoro_settings="$HOME/.pomodoro.rc"
 [ -e $pomodoro_settings ] && source $pomodoro_settings
 
@@ -12,7 +13,6 @@ start_timestamp="$(date)"
 num_pomos_this_session=0
 
 mkdir -p "$pomodoro_logs_dir"
-cd "$pomodoro_logs_dir"
 
 CURRENT_VIMTASK_SCOPE=
 CURRENT_POMO=
