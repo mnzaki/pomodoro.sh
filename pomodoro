@@ -123,6 +123,8 @@ function _todays_pomolog_file() {
 
   if [ ! -e "$pomolog_now_file" ]; then
     _start_day
+  else
+    show_log_editor
   fi
 }
 
@@ -137,10 +139,11 @@ function _pomodoro() {
   local POMO_END=$((EPOCHSECONDS + 25*60))
   while [ $EPOCHSECONDS -lt $POMO_END ]; do
     POMO_TIME_LEFT=$(( (POMO_END - EPOCHSECONDS) / 60 ))m
-    _update_process_name
+    _update_process_name "$POMO_TIME_LEFT"
     sleep 5m
   done
 
+  _update_process_name "END"
   write_log "End Pomodoro $CURRENT_POMO"
 
   # TAKE NOTES
@@ -166,9 +169,10 @@ EOF
 
 # Update the process_name to see remaining time
 function _update_process_name() {
+  local STATUS="$1"
   local my_name_is=`basename $0`
-  if [ -n "$POMO_TIME_LEFT" ]; then
-    my_name_is+="[$POMO_TIME_LEFT]"
+  if [ -n "$STATUS" ]; then
+    my_name_is+="[$STATUS]"
   fi
 
   # tmux support
@@ -180,9 +184,16 @@ function _update_process_name() {
   echo -n "$my_name_is" > /proc/$$/comm
 }
 
+OPTIND=1
+while getopts "t" opt; do
+  case "$opt" in
+    t) realpath "$today_link"; exit;;
+  esac
+done
+
 # if there's a pomodoro already running, just show the log
 THIS_PID=$$
-if pgrep "$(basename "${BASH_SOURCE[0]}")" | grep -v $THIS_PID &>/dev/null; then
+if pgrep "$(basename "$0")" | grep -v $THIS_PID &>/dev/null; then
   write_log
   show_log_editor
   exit 0
