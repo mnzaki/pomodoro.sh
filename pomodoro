@@ -84,12 +84,6 @@ function _start_day() {
   write_log_raw "Last Pomodoro: [$(basename "$LAST_POMO_RELATIVE")]($LAST_POMO_RELATIVE)"
   write_log_raw "> TODO bring in some stats from last pomo, like projects and tasks\n\n"
   write_log_raw "## Today $(date) | due:$(date --date=tomorrow +%Y-%m-%d)\n"
-
-  if xyesno -nearmouse "Plan session? Take notes?"; then
-    show_log_editor
-  fi
-
-  xok "Start session"
 }
 
 function _end_day() {
@@ -123,8 +117,6 @@ function _todays_pomolog_file() {
 
   if [ ! -e "$pomolog_now_file" ]; then
     _start_day
-  else
-    show_log_editor
   fi
 }
 
@@ -199,5 +191,8 @@ if pgrep "$(basename "$0")" | grep -v $THIS_PID &>/dev/null; then
   exit 0
 fi
 
+if xyesno -nearmouse "Plan session? Take notes?"; then
+  show_log_editor
+fi
 while _pomodoro; do true; done
 _end_day
