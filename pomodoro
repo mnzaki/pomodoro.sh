@@ -59,8 +59,12 @@ function write_log_horiz_sep() {
   write_log_raw "--------------------------------------------------------------------------------\n"
 }
 
+function edit_pomo_file_cmd() {
+  echo "$pomodoro_log_editor $(realpath "$today_link")"
+}
+
 function show_log_editor() {
-  _msh_focus_or_exec "$pomodoro_log_editor" "$(realpath "$today_link")"
+  _msh_focus_or_exec "$(edit_pomo_file_cmd)"
   read_log_metadata
 }
 
@@ -194,5 +198,8 @@ fi
 if xyesno -nearmouse "Plan session? Take notes?"; then
   show_log_editor
 fi
+
+( while read; do show_log_editor & done ) </dev/stdin &
+
 while _pomodoro; do true; done
 _end_day
